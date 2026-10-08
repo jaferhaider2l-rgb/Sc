@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>بوابة مدرسة الهندية الابتدائية للبنين</title>
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js"></script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Cairo', system-ui, sans-serif; }
+    html { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+    input, textarea, select {
+      color: #0f172a !important;
+      background-color: #ffffff;
+    }
+    .dark input, .dark textarea, .dark select {
+      color: #ffffff !important;
+      background-color: #1e293b;
+    }
+    input::placeholder, textarea::placeholder {
+      color: #64748b !important;
+    }
+    .dark input::placeholder, .dark textarea::placeholder {
+      color: #94a3b8 !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300 pb-20 font-sans">
+
+  <!-- الشريط العلوي (Header) -->
+  <header class="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs">
+    <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+      <div id="schoolTitleContainer" onclick="handleTitleClick()" class="flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all select-none group" title="انقر 3 مرات بسرعة لدخول لوحة الإدارة">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+        </div>
+        <div class="flex flex-col text-right">
+          <span class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 leading-none mb-1">بوابة أولياء الأمور والطلاب</span>
+          <h1 class="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">مدرسة الهندية الابتدائية للبنين</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="adminBadgeBtn" onclick="openAdminPanel()" class="hidden px-2.5 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold items-center gap-1 shadow-xs cursor-pointer">
+          <span>المدير</span>
+        </button>
+        <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors active:scale-95 cursor-pointer" title="تبديل النمط">
+          <span id="themeIcon">🌙</span>
+        </button>
+        <button onclick="openNotifsModal()" class="relative p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors active:scale-95 cursor-pointer" title="التبليغات">
+          <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <span id="notifsBadge" class="hidden absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-rose-500 text-white text-[11px] font-black rounded-full flex items-center justify-center">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- الواجهة الرئيسية (Portal View) -->
+  <main id="portalView" class="max-w-md mx-auto px-3.5 pt-3.5 space-y-4">
+
+    <!-- بطاقة الترحيب -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-indigo-700 to-indigo-900 text-white p-5 shadow-lg shadow-blue-900/20">
+      <span class="inline-block px-2.5 py-1 rounded-full bg-white/15 text-[11px] font-semibold mb-2">العام الدراسي 2026 - 2027</span>
+      <h2 class="text-lg font-black leading-snug">أهلاً بكم في مدرسة الهندية الابتدائية</h2>
+      <p class="text-xs text-blue-100/90 mt-1">منصة تواصل تفاعلية ومباشرة لخدمة أبنائنا التلاميذ وأولياء أمورهم</p>
+      <div class="mt-3.5 pt-3 border-t border-white/15 flex items-center justify-between text-[11px]">
+        <span>📍 قضاء طويريج (الهندية)</span>
+        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 font-bold border border-emerald-400/30">🟢 متصل سحابياً (Firestore)</span>
+      </div>
+    </div>
+
+    <!-- شريط تفعيل إشعارات الهاتف (FCM) -->
+    <div id="pushBanner" class="bg-amber-500/10 dark:bg-amber-950/40 p-3.5 rounded-2xl border border-amber-300 dark:border-amber-800 flex items-center justify-between gap-2 text-xs">
+      <div>
+        <h3 class="font-extrabold text-slate-900 dark:text-white">تفعيل إشعارات الهاتف الفورية (FCM) 🔔</h3>
+        <p class="text-[11px] text-slate-600 dark:text-slate-300">لتصلك التبليغات مباشرة في شريط إشعارات هاتفك</p>
+      </div>
+      <button onclick="requestPushPermission()" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 cursor-pointer">
+        تفعيل الآن
+      </button>
+    </div>
+
+    <!-- قسم أوقات الدوام الرسمي -->
+    <section class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 dark:text-white">أوقات الدوام الرسمي ⏰</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">مواعيد الحضور والطابور الصباحي والحصص</p>
+        </div>
+        <button onclick="toggleBox('hoursBox')" class="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-xs font-bold cursor-pointer">
+          <span id="hoursToggleLabel">إخفاء التفاصيل</span>
+        </button>
+      </div>
+      <div id="hoursBox" class="mt-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs leading-relaxed whitespace-pre-line font-medium">
+      </div>
+    </section>
+
+    <!-- قسم الجداول المدرسية اليومية -->
+    <section class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <h2 class="text-base font-bold text-slate-900 dark:text-white mb-1">الجداول المدرسية اليومية 📅</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">اختر اليوم لعرض الحصص المقررة</p>
+      <div class="grid grid-cols-5 gap-1.5 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800" id="daysRow"></div>
+      <div id="scheduleBox" class="mt-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700"></div>
+    </section>
+
+    <!-- قسم أحدث التبليغات -->
+    <section class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 dark:text-white">أحدث التبليغات المدرسية 📢</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">التعليمات والإعلانات الرسمية</p>
+        </div>
+        <button onclick="toggleBox('announcementsBox')" class="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-200 text-xs font-bold cursor-pointer">
+          <span id="annToggleLabel">إخفاء</span>
+        </button>
+      </div>
+      <div id="announcementsBox" class="space-y-2.5"></div>
+    </section>
+
+    <!-- قسم صندوق الشكاوى والمقترحات -->
+    <section class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 dark:text-white">صندوق الشكاوى والمقترحات ✉️</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">تواصل مباشر وسري مع إدارة المدرسة</p>
+        </div>
+        <button onclick="toggleBox('complaintsBox')" class="px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-200 text-xs font-bold cursor-pointer">
+          <span id="compToggleLabel">فتح الصندوق</span>
+        </button>
+      </div>
+      <div id="complaintsBox" class="hidden space-y-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+        <form id="complaintForm" onsubmit="handleSendComplaint(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold mb-1">اسم ولي الأمر أو صف التلميذ *:</label>
+            <input type="text" id="compSender" required placeholder="مثال: أبو محمد - الصف الرابع" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-xs sm:text-sm font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">نص الشكوى أو المقترح *:</label>
+            <textarea id="compText" rows="3" required placeholder="اكتب رسالتك بوضوح..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-xs sm:text-sm font-semibold"></textarea>
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs cursor-pointer shadow-sm">
+            إرسال للإدارة 🚀
+          </button>
+        </form>
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-700">
+          <h3 class="font-extrabold text-xs mb-2">سجل الرسائل وردود الإدارة:</h3>
+          <div id="userComplaintsList" class="space-y-2.5 max-h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- الفوتر مع زر التنزيل المباشر -->
+    <footer class="text-center py-4 text-xs text-slate-400 space-y-1">
+      <p>مدرسة الهندية الابتدائية للبنين © 2026</p>
+      <button onclick="downloadSelfHtml()" class="text-blue-600 hover:underline font-bold text-[11px] cursor-pointer">
+        📥 تنزيل نسخة ملف الموقع كاملة (HTML)
+      </button>
+    </footer>
+
+  </main>
+
+  <!-- شاشة لوحة تحكم المدير (Admin Panel View) -->
+  <div id="adminView" class="hidden max-w-2xl mx-auto px-4 py-4 space-y-4">
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="p-2 rounded-xl bg-blue-600 text-white font-black text-sm">إدارة</span>
+        <div>
+          <h2 class="font-extrabold text-sm sm:text-base">لوحة تحكم المدير</h2>
+          <p class="text-[11px] text-slate-400">مدرسة الهندية الابتدائية للبنين</p>
+        </div>
+      </div>
+      <button onclick="closeAdminPanel()" class="px-3 py-1.5 rounded-xl bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 text-xs font-bold cursor-pointer">
+        العودة للبوابة ↩
+      </button>
+    </div>
+
+    <!-- تعديل أوقات الدوام -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+      <h3 class="font-bold text-xs sm:text-sm">تعديل أوقات الدوام الرسمي:</h3>
+      <textarea id="adminHoursInput" rows="5" class="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-xs font-semibold"></textarea>
+      <button onclick="adminSaveHours()" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-pointer">
+        حفظ الدوام فوراً 💾
+      </button>
+    </div>
+
+    <!-- إدارة الجداول -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+      <h3 class="font-bold text-xs sm:text-sm">إدارة وتحديث جداول الأيام:</h3>
+      <select id="adminDaySelect" onchange="loadAdminScheduleForDay()" class="w-full p-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-700 text-xs font-bold">
+        <option value="الأحد">جدول يوم الأحد</option>
+        <option value="الإثنين">جدول يوم الإثنين</option>
+        <option value="الثلاثاء">جدول يوم الثلاثاء</option>
+        <option value="الأربعاء">جدول يوم الأربعاء</option>
+        <option value="الخميس">جدول يوم الخميس</option>
+      </select>
+      <textarea id="adminScheduleContent" rows="4" placeholder="نص الحصص والمواد..." class="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-xs font-semibold"></textarea>
+      <input type="url" id="adminScheduleImg" placeholder="رابط صورة الجدول (اختياري)..." class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-xs">
+      <div class="flex gap-2">
+        <button onclick="adminSaveSchedule()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold cursor-pointer">
+          حفظ الجدول 💾
+        </button>
+        <button onclick="adminClearSchedule()" class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-xs font-bold cursor-pointer">
+          تفريغ جدول اليوم 🧹
+        </button>
+      </div>
+    </div>
+
+    <!-- نشر التبليغات -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+      <h3 class="font-bold text-xs sm:text-sm">نشر تبليغ جديد:</h3>
+      <input type="text" id="adminAnnTitle" placeholder="عنوان التبليغ..." class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-xs font-bold">
+      <textarea id="adminAnnContent" rows="3" placeholder="تفاصيل التبليغ..." class="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-xs font-semibold"></textarea>
+      <button onclick="adminPublishAnnouncement()" class="px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold cursor-pointer">
+        نشر التبليغ الآن 📢
+      </button>
+      <div id="adminAnnList" class="space-y-2 pt-3"></div>
+    </div>
+
+    <!-- الشكاوى والردود -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+      <h3 class="font-bold text-xs sm:text-sm">الشكاوى الواردة والرد عليها:</h3>
+      <div id="adminComplaintsList" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- نافذة تسجيل دخول المدير المنبثقة -->
+  <div id="adminLoginModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div class="w-full max-w-sm bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <h3 class="font-black text-center text-lg">تسجيل دخول إدارة المدرسة</h3>
+      <p class="text-center text-xs text-slate-400">مخصصة لمدير المدرسة والمعاون فقط</p>
+      <input type="password" id="adminPasswordInput" placeholder="أدخل كلمة المرور..." class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-center font-bold text-base">
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="closeAdminLoginModal()" class="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-xs cursor-pointer">إلغاء</button>
+        <button onclick="checkAdminPassword()" class="py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs cursor-pointer">دخول</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة أرشيف التبليغات المنبثقة -->
+  <div id="notifsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div class="w-full max-w-md bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+        <h3 class="font-extrabold text-sm">أرشيف التبليغات الكامل 🔔</h3>
+        <button onclick="closeNotifsModal()" class="text-xs font-bold text-slate-400 hover:text-slate-200 cursor-pointer">✕ إغلاق</button>
+      </div>
+      <div id="allNotifsList" class="overflow-y-auto space-y-2.5 flex-1 pr-1"></div>
+    </div>
+  </div>
+
+  <script>
+    // إعدادات Firebase الخاصة بالمشروع
+    const firebaseConfig = {
+      projectId: "empyrean-world-j4mm2",
+      appId: "1:702127279658:web:ffcf1ad762d8c5623e3d53",
+      apiKey: "AIzaSyA2jhkSNnZhX0g0yelpNr0DuZoitjZWl_8",
+      authDomain: "empyrean-world-j4mm2.firebaseapp.com",
+      firestoreDatabaseId: "ai-studio-d29a5983-c8a8-4681-ad4c-4cd1d32706a3",
+      storageBucket: "empyrean-world-j4mm2.firebasestorage.app",
+      messagingSenderId: "702127279658"
+    };
+
+    let db = null;
+    let messaging = null;
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      console.log('Firebase Firestore Initialized');
+    } catch(e) {
+      console.warn('Firebase init error', e);
+    }
+
+    const DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+    let selectedDay = 'الأحد';
+    let hoursText = localStorage.getItem('school_hours') || `• موعد الاصطفاف الصباحي: 7:45 صباحاً\n• بدء الدرس الأول: 8:00 صباحاً\n• نظام الحصص: 5 حصص يومياً (45 دقيقة للحصة)\n• انتهاء الدوام وانصراف التلاميذ: 12:30 ظهراً`;
+    let schedules = JSON.parse(localStorage.getItem('school_schedules') || '{}');
+    let announcements = JSON.parse(localStorage.getItem('school_announcements') || '[]');
+    let complaints = JSON.parse(localStorage.getItem('school_complaints') || '[]');
+    let isAdminLoggedIn = false;
+
+    // تبديل النمط الليلي / النهاري
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('school_theme', isDark ? 'dark' : 'light');
+      document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+    }
+
+    if (localStorage.getItem('school_theme') === 'dark' || (!localStorage.getItem('school_theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      document.getElementById('themeIcon').textContent = '☀️';
+    }
+
+    // النقر السري 3 مرات لفتح الإدارة
+    let clickTimes = [];
+    function handleTitleClick() {
+      const now = Date.now();
+      clickTimes = clickTimes.filter(t => now - t < 1500);
+      clickTimes.push(now);
+      if (clickTimes.length >= 3) {
+        clickTimes = [];
+        if (isAdminLoggedIn) {
+          openAdminPanel();
+        } else {
+          document.getElementById('adminLoginModal').classList.remove('hidden');
+          document.getElementById('adminPasswordInput').focus();
+        }
+      }
+    }
+
+    function closeAdminLoginModal() {
+      document.getElementById('adminLoginModal').classList.add('hidden');
+      document.getElementById('adminPasswordInput').value = '';
+    }
+
+    function checkAdminPassword() {
+      const pass = document.getElementById('adminPasswordInput').value;
+      if (pass === '2026') {
+        isAdminLoggedIn = true;
+        closeAdminLoginModal();
+        openAdminPanel();
+      } else {
+        alert('كلمة المرور غير صحيحة!');
+      }
+    }
+
+    function openAdminPa
